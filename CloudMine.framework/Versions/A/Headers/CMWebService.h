@@ -8,26 +8,16 @@
 
 /** @file */
 
+#import "AFHTTPClient.h"
+
 #import "CMFileUploadResult.h"
 #import "CMUserAccountResult.h"
+#import "CMSocialLoginViewController.h"
 
-@class ASINetworkQueue;
 @class CMUser;
 @class CMServerFunction;
 @class CMPagingDescriptor;
 @class CMSortDescriptor;
-
-extern NSString * const CMErrorDomain;
-
-typedef enum {
-    CMErrorUnknown,
-    CMErrorServerConnectionFailed,
-    CMErrorServerError,
-    CMErrorNotFound,
-    CMErrorInvalidRequest,
-    CMErrorInvalidResponse,
-    CMErrorUnauthorized
-} CMErrorCode;
 
 /**
  * Base URL for the current version of the CloudMine API.
@@ -88,18 +78,10 @@ typedef void (^CMWebServiceUserFetchSuccessCallback)(NSDictionary *results, NSDi
  * Base class for all classes concerned with the communication between the client device and the CloudMine
  * web services.
  */
-@interface CMWebService : NSObject {
+@interface CMWebService : AFHTTPClient <CMSocialLoginViewControllerDelegate> {
     NSString *_appSecret;
     NSString *_appIdentifier;
 }
-
-/**
- * The message queue used to send messages to the CloudMine web services.
- *
- * One of these exists for each instance of <tt>CMWebService</tt>, allowing you to parallelize
- * network communication.
- */
-@property (nonatomic, strong) ASINetworkQueue *networkQueue;
 
 /**
  * Default initializer for the web service connector. You <strong>must</strong> have already configured the
@@ -113,6 +95,18 @@ typedef void (^CMWebServiceUserFetchSuccessCallback)(NSDictionary *results, NSDi
  * Initializes an instance of a web service connector with the given API key and secret app key.
  */
 - (id)initWithAppSecret:(NSString *)appSecret appIdentifier:(NSString *)appIdentifier;
+
+/**
+ * Asynchronously retrieve all ACLs associated with the named user. On completion, the <tt>successHandler</tt> block
+ * will be called with a dictionary of the ACLs retrieved.
+ *
+ * @param user The user whose ACLs to fetch.
+ * @param successHandler The block to be called when the objects have been populated.
+ * @param errorHandler The block to be called if the entire request failed (i.e. if there is no network connectivity).
+ */
+- (void)getACLsForUser:(CMUser *)user
+        successHandler:(CMWebServiceObjectFetchSuccessCallback)successHandler
+          errorHandler:(CMWebServiceFetchFailureCallback)errorHandler;
 
 /**
  * Asynchronously retrieve objects for the named user-level keys. On completion, the <tt>successHandler</tt> block
@@ -141,6 +135,20 @@ typedef void (^CMWebServiceUserFetchSuccessCallback)(NSDictionary *results, NSDi
         extraParameters:(NSDictionary *)params
          successHandler:(CMWebServiceObjectFetchSuccessCallback)successHandler
            errorHandler:(CMWebServiceFetchFailureCallback)errorHandler;
+
+/**
+ * Asynchronously search all ACLs associated with the user, using the specified query. On completion, the <tt>successHandler</tt> block
+ * will be called with a dictionary of the ACLs retrieved.
+ *
+ * @param query This is the same syntax as defined at https://cloudmine.me/developer_zone#ref/query_syntax and used by <tt>CMStore</tt>'s search methods.
+ * @param user The user whose ACLs to query.
+ * @param successHandler The block to be called when the objects have been populated.
+ * @param errorHandler The block to be called if the entire request failed (i.e. if there is no network connectivity).
+ */
+- (void)searchACLs:(NSString *)query
+              user:(CMUser *)user
+    successHandler:(CMWebServiceObjectFetchSuccessCallback)successHandler
+      errorHandler:(CMWebServiceFetchFailureCallback)errorHandler;
 
 /**
  * Asynchronously retrieve a binary file for the named user-leve key. On completion, the <tt>successHandler</tt> block
@@ -175,6 +183,20 @@ typedef void (^CMWebServiceUserFetchSuccessCallback)(NSDictionary *results, NSDi
                    extraParameters:(NSDictionary *)params
                     successHandler:(CMWebServiceObjectFetchSuccessCallback)successHandler
                       errorHandler:(CMWebServiceFetchFailureCallback)errorHandler;
+
+/**
+ * Asynchronously update the specified ACL. On completion, the <tt>successHandler</tt> block will be called with a dictionary containing
+ * the object updated.
+ *
+ * @param acl This is a dictionary containing the attributes of the ACL object to update, as serialized by <tt>CMObjectEncoder</tt>.
+ * @param user The user to whom the ACL is associated.
+ * @param successHandler The block to be called when a response has been received.
+ * @param errorHandler The block to be called if the entire request failed (i.e. if there is no network connectivity).
+ */
+- (void)updateACL:(NSDictionary *)acl
+             user:(CMUser *)user
+   successHandler:(CMWebServiceObjectFetchSuccessCallback)successHandler
+     errorHandler:(CMWebServiceFetchFailureCallback)errorHandler;
 
 /**
  * Asynchronously upload the raw binary data contained in <tt>data</tt> with an optional MIME type as a user-level object.
@@ -264,6 +286,20 @@ typedef void (^CMWebServiceUserFetchSuccessCallback)(NSDictionary *results, NSDi
                errorHandler:(CMWebServiceFetchFailureCallback)errorHandler;
 
 /**
+ * Asynchronously delete the ACL with the specified key, associated with the specified user. On completion, the <tt>successHandler</tt> block will be called
+ * with a dictionary containing the status of the deletion.
+ *
+ * @param key The key of the ACL that will be deleted.
+ * @param user The user to whom the ACL is associated.
+ * @param successHandler The block to be called when a response has been received.
+ * @param errorHandler The block to be called if the entire request failed (i.e. if there is no network connectivity).
+ */
+- (void)deleteACLWithKey:(NSString *)key
+                    user:(CMUser *)user
+          successHandler:(CMWebServiceObjectFetchSuccessCallback)successHandler
+            errorHandler:(CMWebServiceFetchFailureCallback)errorHandler;
+
+/**
  * Asynchronously login a user and create a new session. On completion, the <tt>callback</tt> block will be called with
  * the result of the operation and the body of the response represented by an <tt>NSDictonary</tt>. See the CloudMine
  * documentation online for the possible contents of this dictionary.
@@ -316,6 +352,16 @@ typedef void (^CMWebServiceUserFetchSuccessCallback)(NSDictionary *results, NSDi
  * @see https://cloudmine.me/developer_zone#ref/account_create
  */
 - (void)createAccountWithUser:(CMUser *)user callback:(CMWebServiceUserAccountOperationCallback)callback;
+
+/**
+ * Initialize the social login service by calling the SocialLoginViewController (which contains only a webview)
+ * 
+ * @param callback The block that will be called on completion of the operation
+ * @param service The social service to be logged into
+ * @param viewController the current viewController in use when this method is called
+ * @see https://cloudmine.me/docs/api#users_social
+ */
+- (void)loginWithSocial:(CMUser *)user withService:(NSString *)service andViewController:(UIViewController *)viewController callback:(CMWebServiceUserAccountOperationCallback)callback;
 
 /**
  * Asynchronously change the password for the given user. For security purposes, you must have the user enter his or her

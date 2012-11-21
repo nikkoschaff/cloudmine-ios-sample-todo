@@ -40,6 +40,16 @@
 #define CMInternalObjectIdKey @"__id__"
 
 /**
+ * The key to be used to store the array of ACL IDs attached to the object being serialized.
+ */
+#define CMInternalObjectACLsKey @"__access__"
+
+/**
+ * The key used to store services from linking accounts with social networks
+ */
+#define CMInternalServiceStorageKey @"__services__"
+
+/**
  * A set of all the object keys used internally by this framework for (de)serialization purposes.
  */
-#define CMInternalKeys $set(CMInternalTypeStorageKey, CMInternalClassStorageKey, CMInternalObjectIdKey)
+#define CMInternalKeys $set(CMInternalTypeStorageKey, CMInternalClassStorageKey, CMInternalObjectIdKey, CMInternalObjectACLsKey, CMInternalServiceStorageKey)

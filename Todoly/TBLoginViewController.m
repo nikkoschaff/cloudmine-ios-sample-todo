@@ -15,6 +15,7 @@
 @property (weak, nonatomic) IBOutlet UITextField *passwordField;
 @property (weak, nonatomic) IBOutlet UITableViewCell *loginCell;
 @property (weak, nonatomic) IBOutlet UITableViewCell *createAccountCell;
+@property (strong, nonatomic) IBOutlet UITableViewCell *loginWithSocialCell;
 
 - (void)login;
 - (void)createAccountAndLogin;
@@ -79,6 +80,8 @@
     [_usernameField becomeFirstResponder];
 }
 
+
+
 - (void)viewDidDisappear:(BOOL)animated {
     // Unregister for text field change notifications
     [[NSNotificationCenter defaultCenter] removeObserver:self];
@@ -104,6 +107,19 @@
     self.authenticating = YES;
     [_user loginWithCallback:userCallback];
 }
+
+-(void)loginWithSocial {
+    // Begin login process
+    //self.authenticating = YES;
+    
+    // TODO expand for other services (and complete)
+    // Hard-coded to Twitter for now
+    NSString* service = [NSString stringWithFormat:@"twitter"];
+    
+    [_user loginWithSocial:service andViewController:self callback:userCallback];
+}
+
+
 
 - (void)createAccountAndLogin {
     if (!_user.userId.length || !_user.password.length)
@@ -158,6 +174,14 @@
     // If the user selects the create account button
     if ([[tableView cellForRowAtIndexPath:indexPath] isEqual:_createAccountCell])
         [self createAccountAndLogin];
+    
+    // If the user selects login with social button
+    if ([[tableView cellForRowAtIndexPath:indexPath] isEqual:_loginWithSocialCell])
+        [self loginWithSocial];
 }
 
+- (void)viewDidUnload {
+    //[self setLoginWithSocialCell:nil];
+    [super viewDidUnload];
+}
 @end
